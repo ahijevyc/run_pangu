@@ -1,0 +1,22 @@
+
+# to generate forecasts process forecast output
+
+mamba create -n ainwp python==3.10 numpy onnx onnxruntime xarray netCDF4
+for cuda/11: pip install onnxruntime-gpu --index-url https://aiinfra.pkgs.visualstudio.com/PublicPackages/_packaging/onnxruntime-cuda-11/pypi/simple/
+pip install pygrib
+
+for processing forecasts:
+pip install pyyaml
+mamba install scipy
+pip install basemap
+mamba install cartopy
+
+# environment to run pytorch inference
+mamba install pytorch -c pytorch # this probably uses cuda 12.x
+
+pip install ecmwf-opendata # to download open data
+pip install ecmwf-api-client # to download archived forecasts
+
+todo:
+extend to 10 days
+run with fengwu?
