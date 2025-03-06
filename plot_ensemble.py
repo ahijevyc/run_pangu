@@ -219,7 +219,7 @@ ds = xr.open_mfdataset(
     concat_dim="mem",
     combine="nested",
 )
-plot_forecast_grid(ds, odir / 'predictions_grid_%s_spag_z500_%s.png'%(model,yyyymmddhh))
+plot_forecast_grid(ds, odir / f'predictions_grid_{model}_spag_z500_{yyyymmddhh}.png')
 
 #for hazard in ['any']:
 #    for day in [1,2,3,4,5,6,7,8]:
