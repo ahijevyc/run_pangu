@@ -45,7 +45,8 @@ def process_member(time: str, mem: str) -> None:
 
     kwargs = {"date": date, "time": hour, "step": "000", "year": date[:4]}
 
-    # Load GRIB files
+    # Load GRIB files from 3 different sources
+    # pla and plb are 0.5 deg. sfc is 0.25 deg.
     pla = ekd.from_source("file", TMPDIR / "noaa-gefs-pds" / f"{date}{hour}/ge{mem}.t{hour}z.pgrb2a.0p50.f000", **kwargs)
     plb = ekd.from_source("file", TMPDIR / "noaa-gefs-pds" / f"{date}{hour}/ge{mem}.t{hour}z.pgrb2b.0p50.f000", **kwargs)
     sfc = ekd.from_source("file", TMPDIR / "noaa-gefs-pds" / f"{date}{hour}/ge{mem}.t{hour}z.pgrb2s.0p25.f000", **kwargs)
@@ -64,6 +65,7 @@ def process_member(time: str, mem: str) -> None:
     G: Dict[str, float] = {"gh": 9.80665}  # Conversion factor for geopotential height
     PARAM: Dict[str, str] = {"gh": "z", "prmsl": "msl"}  # Parameter renaming
     
+    # grid keys from sfc are assigned to all fields, including pressure-level. 
     reference_field = fields_sfc[0]
     grid_keys = [
         "Ni", "Nj", "latitudeOfFirstGridPoint", "longitudeOfFirstGridPoint",
@@ -74,6 +76,7 @@ def process_member(time: str, mem: str) -> None:
     for f in tqdm.tqdm(fields_pl + fields_sfc, desc=f"Processing {mem}"):
         param = f.metadata("shortName")
         grid_metadata = {key: reference_field[key] for key in grid_keys}
+        # resize to 0.25 deg
         arr = resize(f.to_numpy(), (721, 1440), order=0, mode='edge', anti_aliasing=False)
         
         out.write(

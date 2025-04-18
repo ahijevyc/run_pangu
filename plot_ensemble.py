@@ -1,4 +1,3 @@
-from concurrent.futures import ThreadPoolExecutor
 import glob
 import matplotlib
 import matplotlib.pyplot as plt
@@ -8,15 +7,15 @@ import cartopy.crs as ccrs
 import cartopy.feature as cfeature
 import xarray as xr
 import numpy as np
+import pandas as pd
 from tqdm import tqdm
-import datetime as dt
 import sys, pickle
 import argparse
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Plotting for AI NWP ensemble severe output')
-    parser.add_argument('--init', default=dt.datetime.now().strftime('%Y%m%d00'), help='initialization time')
-    parser.add_argument('--model', default='panguweather', help='model')
+    parser.add_argument('itime', help='initialization time')
+    parser.add_argument('model', default='panguweather', help='model')
     return parser.parse_args()
 
 def readNCLcm(name):
@@ -71,7 +70,7 @@ def smooth_gridded_forecast(predictions_gridded):
     # return only predictions for US points
     return np.array(smoothed_predictions)
 
-def plot_forecast(data2d, fname='forecast.png'):
+def plot_forecast(data2d, ofile='forecast.png'):
     #fig, axes, m = pickle.load(open('../rt2015_ch_CONUS.pk', 'rb'))
     #xgrid, ygrid = m(lons, lats) #80 km grid points on new map projection   
     data2d = data2d.flatten()[thismask]
@@ -137,9 +136,9 @@ def plot_forecast(data2d, fname='forecast.png'):
                            linewidths=linewidths, transform=ccrs.PlateCarree())
            
     plt.tight_layout()
-    plt.savefig(fname, dpi=150)
+    plt.savefig(ofile, dpi=150)
 
-def plot_forecast_grid(ds, fname='test.png'):
+def plot_forecast_grid(args, ds, ofile='test.png'):
     axes_proj = ccrs.LambertConformal(central_longitude=-100, central_latitude=37)
     
     fig_width = 9
@@ -147,18 +146,17 @@ def plot_forecast_grid(ds, fname='test.png'):
     fig.subplots_adjust(hspace=0.05, wspace=0.06, bottom=0.05,top=0.95,left=0.05,right=0.95)
     axes = axes.flatten()
 
-    ds = ds.sel(latitude=slice(53,22), longitude=slice(360-125, 360-69))
+    ds = ds.sel(latitude=slice(53,22), longitude=slice(360-129, 360-65))
     lons, lats = ds['longitude'], ds['latitude']
-    ds = ds["z"]/9.81
-    ds.load()
+    ds = ds["z"] / 9.81
     coastline = cfeature.COASTLINE.with_scale('50m')
     states = cfeature.STATES.with_scale('50m')
     for n, ax in tqdm(enumerate(axes[:-1]), desc="day"):
         day = n+1
         for spine in ax.spines.values(): spine.set_linewidth(0.25)
-        
-        daytext1 = (thisdate + dt.timedelta(days=day)).strftime('00 UTC %a %d %b')
-        #daytext2 = (thisdate + dt.timedelta(days=day)).strftime('12 UTC %a %d %b')
+
+        daytext1 = (ds.init_time.data + pd.Timedelta(days=day)).strftime('00 UTC %a %d %b')
+        #daytext2 = (ds.init_time.data + pd.Timedelta(days=day)).strftime('12 UTC %a %d %b')
         a = ax.text(0, 1, r'$\bf{Day\ %d:}$ %s'%(day, daytext1), fontsize=6, ha='left', va='bottom', color='k', fontweight='normal', transform=ax.transAxes)
         #a = ax.text(0.01, 0.03, 'max:%d%%'%(100*max_prob), fontsize=6, ha='left', va='center', color='k', transform=ax.transAxes)
 
@@ -171,10 +169,10 @@ def plot_forecast_grid(ds, fname='test.png'):
         contour_colors = ['blue', 'green', 'red']
 
         for m in tqdm(ds.mem):
-            this_mem = ds.sel(mem=m, step=dt.timedelta(days=day))
+            this_mem = ds.sel(mem=m, step=pd.Timedelta(days=day))
             ax.contour(lons, lats, this_mem, levels=[5520,5760,5880], colors=contour_colors, \
                        linewidths=[0.5], transform=ccrs.PlateCarree(), alpha=0.3)
-        mean_field = ds.sel(step=dt.timedelta(days=day)).mean(dim="mem")
+        mean_field = ds.sel(step=pd.Timedelta(days=day)).mean(dim="mem")
         ax.contour(lons, lats, mean_field, levels=[5520,5760,5880], colors='k', \
                    linewidths=[1.5], transform=ccrs.PlateCarree())
 
@@ -184,44 +182,74 @@ def plot_forecast_grid(ds, fname='test.png'):
     #cbar.ax.tick_params(labelsize=6, length=0, width=0, color='k') 
     #cbar.ax.set_xticklabels(['0.5%','5%','15%','30%','45%','60%','']) 
 
-    ictext = 'GEFS ICs'
+    ictext = args.ic + ' ICs'
 
-    daytext1 = thisdate.strftime('00 UTC %A %d %B %Y')
+    daytext1 = ds.init_time.dt.strftime('00 UTC %A %d %B %Y').item()
     axes[8].text(0.02,0.7, 'Init: %s'%daytext1, fontsize=8, ha='left', va='center', color='k', transform=axes[8].transAxes)
     axes[8].text(0.02,0.63, 'Model: %s, IC: %s'%(args.model.upper(),ictext), fontsize=6, ha='left', va='center', color='k', transform=axes[8].transAxes)
 
-    #plt.tight_layout()
-    plt.savefig(fname, dpi=150, bbox_inches='tight')
-    print(fname)
+    plt.savefig(ofile, dpi=150, bbox_inches='tight')
+    print(ofile)
 
 ##################################
 mask  = pickle.load(open('/glade/u/home/sobash/2013RT/usamask.pk', 'rb'))
 thismask = mask.flatten()
-args = parse_arguments()
 
-day = 1
-thisdate = dt.datetime.strptime(args.init, '%Y%m%d%H')
-model = args.model
-yyyymmddhh = thisdate.strftime('%Y%m%d%H')
-print('making graphics for', yyyymmddhh, model)
+import re
+def parsemem(ds):
+    filename = ds.encoding["source"]
+    # get member substring
+    match = re.search(r'/[cp]\d\d/', filename)
+    mem = match.group(0).strip('/')
+    # assign mem to coordinate
+    ds = ds.assign_coords(mem=[mem])
+    return ds
 
-odir = Path(f'/glade/derecho/scratch/ahijevyc/ai-models/output/{model}/{yyyymmddhh}')
-ifiles = list(odir.glob('ge[pc][0-9][0-9].grib'))
-print(f"open {len(ifiles)} files")
-ds = xr.open_mfdataset(
-    ifiles,
-    engine="cfgrib",
-    filter_by_keys={
-        "typeOfLevel": "isobaricInhPa",
-        "level": 500,
-    },
-    backend_kwargs={"indexpath": ""},
-    concat_dim="mem",
-    combine="nested",
-)
-plot_forecast_grid(ds, odir / f'predictions_grid_{model}_spag_z500_{yyyymmddhh}.png')
+def main():
+    args = parse_arguments()
+
+    day = 1
+    itime = pd.to_datetime(args.itime)
+    yyyymmddhh = itime.strftime("%Y%m%d%H")
+    model = args.model
+    print('making graphics for', itime, model)
+
+    odir = Path(f'/glade/derecho/scratch/ahijevyc/ai-models/output/{model}/{yyyymmddhh}')
+    ifiles = list(odir.glob('ge[pc][0-9][0-9].grib'))
+    if len(ifiles):
+        print(f"open {len(ifiles)} grib files")
+        ds = xr.open_mfdataset(
+            ifiles,
+            engine="cfgrib",
+            filter_by_keys={
+                "typeOfLevel": "isobaricInhPa",
+                "level": 500,
+            },
+            backend_kwargs={"indexpath": ""},
+            concat_dim="mem",
+            combine="nested",
+        )
+        args.ic = "GEFS"
+    else:
+        ifiles = odir.glob("[cp]*/*.nc")
+        def daymultiple(f):
+            fhr = f.name[-6:-3]  # fhr part
+            return int(fhr) % 24 == 0
+        ifiles = [f for f in ifiles if daymultiple(f)]
+        print(f"open {len(ifiles)} nc files")
+        ds = xr.open_mfdataset(ifiles, preprocess=parsemem).rename(lat="latitude", lon="longitude", prediction_timedelta="step").squeeze(dim="init_time")
+        ds = ds.sel(channel="z500").rename(__xarray_dataarray_variable__="z")
+        args.ic = "ECMWF"
+
+    plot_forecast_grid(args, ds, ofile = odir / f'predictions_grid_{model}_spag_z500_{yyyymmddhh}.png')
+
+
 
 #for hazard in ['any']:
 #    for day in [1,2,3,4,5,6,7,8]:
 #        print(hazard, day)
 #        plot_forecast( ds['prob'].sel(hazard=hazard,day=day).values, 'predictions_%s_%s_day%d_%s_%s.png'%(model,mem,day,hazard,yyyymmddhh) )
+
+
+if __name__ == '__main__':
+    main()

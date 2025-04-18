@@ -13,7 +13,7 @@ os.environ['ECMWF_API_EMAIL'] = "sobash@ucar.edu"
 thisdate = datetime.datetime.strptime(sys.argv[1], '%Y%m%d%H')
 ic_source = sys.argv[2]
 yyyymmddhh = thisdate.strftime('%Y%m%d%H')
-outdir = '/glade/derecho/scratch/sobash/pangu_realtime/%s/%s/'%(yyyymmddhh,ic_source)
+outdir = os.getenv('SCRATCH') + '/pangu_realtime/%s/%s/'%(yyyymmddhh,ic_source)
 outdir = '.'
 
 server = ECMWFService("mars")
