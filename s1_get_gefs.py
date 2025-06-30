@@ -1,3 +1,4 @@
+import sys
 import logging
 import os
 from pathlib import Path
@@ -40,13 +41,16 @@ def download_time(date: pd.Timestamp):
 
 
 def main():
-    date_range = pd.date_range(start="2023-04-15", end="2023-05-31", freq="D")
-    date_range = date_range.union(
-                 pd.date_range(start="2024-04-20", end="2024-05-31", freq="D")
-    )
-    
-    for date in date_range:
-        download_time(date)
+    if sys.argv[1]:
+        download_time(pd.to_datetime(sys.argv[1]))
+    else:
+        date_range = pd.date_range(start="2023-04-15", end="2023-05-31", freq="D")
+        date_range = date_range.union(
+                     pd.date_range(start="2024-04-20", end="2024-05-31", freq="D")
+        )
+        
+        for date in date_range:
+            download_time(date)
 
 if __name__ == "__main__":
     main()

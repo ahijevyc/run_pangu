@@ -2,7 +2,7 @@
 Read input fields for PanguWeather, resize half-degree data to quarter-degree, and write to a GRIB file.
 
 Input sources:
-- AWS bucket (by running `~/bin/getGEFS.py` first)
+- AWS bucket (by running `s1_get_gefs.py` first)
 - Craig Schwartz's HWT archive at `/glade/campaign/mmm/parc/schwartz/HWT2024/gefs/`
   - Available dates: 20230415-20230531 and 20240420-20240531.
 
@@ -37,7 +37,7 @@ def process_member(time: str, mem: str) -> None:
         with pygrib.open(output) as grib:
             num_records = len(list(grib))
         if num_records == 69:
-            print(f"{output} exists already. skipping")
+            print(f"{output} exists. skip")
             return
         else:
             print(f"{output} has only {num_records} records. Remake it.")

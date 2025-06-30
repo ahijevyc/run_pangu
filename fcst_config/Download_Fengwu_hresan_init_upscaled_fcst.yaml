@@ -1,0 +1,35 @@
+MODEL: 'FengWuV2HRESAN'
+interp: True
+data_dir: '/glade/derecho/scratch/sobash/fengwu_realtime/'
+output_rootdir: '/glade/derecho/scratch/sobash/fengwu_realtime/'
+start_input_date: '2025010100'
+end_date: '2025010100'
+start_fcst_hour: 6
+end_fcst_hour: 205
+fcst_hour_interval: 6
+
+upscaled_model_fields:
+  q850: []
+  q500: []
+  u850: []
+  u500: []
+  u200: []
+  v850: []
+  v500: []
+  v200: []
+  z700: []
+  z500: []
+  z200: []
+  t850: []
+  t700: []
+  t500: []
+  msl: []
+  u10m: []
+  v10m: []
+  t2m: []
+
+upscaled_derived_fields:
+  LR75: []
+  SHEAR500: []
+  SHEAR850: []
+  UV10: []

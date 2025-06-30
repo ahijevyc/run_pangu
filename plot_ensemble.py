@@ -8,7 +8,7 @@ import cartopy.feature as cfeature
 import xarray as xr
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
+from tqdm.auto import tqdm
 import sys, pickle
 import argparse
 
@@ -138,7 +138,7 @@ def plot_forecast(data2d, ofile='forecast.png'):
     plt.tight_layout()
     plt.savefig(ofile, dpi=150)
 
-def plot_forecast_grid(args, ds, ofile='test.png'):
+def plot_forecast_grid(args, ds, plotdays=range(9), ofile='test.png'):
     axes_proj = ccrs.LambertConformal(central_longitude=-100, central_latitude=37)
     
     fig_width = 9
@@ -151,8 +151,10 @@ def plot_forecast_grid(args, ds, ofile='test.png'):
     ds = ds["z"] / 9.81
     coastline = cfeature.COASTLINE.with_scale('50m')
     states = cfeature.STATES.with_scale('50m')
-    for n, ax in tqdm(enumerate(axes[:-1]), desc="day"):
+    for n, ax in tqdm(enumerate(axes[:-1]), total=len(plotdays)):
         day = n+1
+        if day not in plotdays:
+            continue
         for spine in ax.spines.values(): spine.set_linewidth(0.25)
 
         daytext1 = (ds.init_time.data + pd.Timedelta(days=day)).strftime('00 UTC %a %d %b')
@@ -189,6 +191,7 @@ def plot_forecast_grid(args, ds, ofile='test.png'):
     axes[8].text(0.02,0.63, 'Model: %s, IC: %s'%(args.model.upper(),ictext), fontsize=6, ha='left', va='center', color='k', transform=axes[8].transAxes)
 
     plt.savefig(ofile, dpi=150, bbox_inches='tight')
+    plt.close(fig)
     print(ofile)
 
 ##################################

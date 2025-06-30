@@ -2,6 +2,12 @@
 
 set yyyymmddhh=$1
 set model=$2
+if ($model == fengwu) then
+    echo "fengwu not implemented with ai-models (even with ai-models-fengwu)"
+    #   File "/glade/u/home/ahijevyc/.local/lib/python3.10/site-packages/earthkit/data/sources/multi.py", line 73, in sel
+    #raise NotImplementedError
+    exit 1
+endif
 set hh=`echo $yyyymmddhh | cut -c9-10`
 set odir=$SCRATCH/ai-models/output/$model/$yyyymmddhh
 mkdir -p $odir

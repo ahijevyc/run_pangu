@@ -1,4 +1,5 @@
 import datetime, sys, os
+from ecmwf.opendata import Client
 from ecmwfapi import ECMWFService
 
 os.environ['ECMWF_API_KEY'] = "bbfde4b05540eefc786ab64c9f4ea8b7"
@@ -14,11 +15,10 @@ thisdate = datetime.datetime.strptime(sys.argv[1], '%Y%m%d%H')
 ic_source = sys.argv[2]
 yyyymmddhh = thisdate.strftime('%Y%m%d%H')
 outdir = os.getenv('SCRATCH') + '/pangu_realtime/%s/%s/'%(yyyymmddhh,ic_source)
-outdir = '.'
 
-server = ECMWFService("mars")
 
 if ic_source == 'hres':
+    server = ECMWFService("mars")
     server.execute( {
         "class": "od",
         "date": thisdate.strftime('%Y%m%d'),
@@ -33,6 +33,7 @@ if ic_source == 'hres':
     )
 
 elif ic_source[0:3] == 'ens':
+    client = Client(source="ecmwf")
     mem = int(ic_source[3:])
     if mem < 1:
         client.retrieve(

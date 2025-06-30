@@ -1,0 +1,51 @@
+nc_rootdir: '/glade/derecho/scratch/sobash/fengwu_realtime/'
+dataset_folder:
+  - Pangu_HRESANinit_preprocess_idw_haversine
+
+output_rootdir: '/glade/derecho/scratch/sobash/fengwu_realtime/'
+output_folder_name: 'FengWuV2HRESAN_preprocess'
+
+start_input_date: '2025010100'
+end_input_date: '2025010100'
+
+stats_start_date: '2025012000'
+stats_end_date: '2025012000'
+
+start_fcst_day: 1
+end_fcst_day: 8
+fcst_hour_interval: 6
+nfr: 204
+
+report_types:
+    - 'hailone' 
+    - 'wind' 
+    - 'torn'
+    - 'sighail' 
+    - 'sigwind'
+    - 'wind50'
+    - 'windmg'
+    - 'sigtor'
+   
+fields_selected:
+  FengWuV2HRESAN:
+    - q850
+    - q500
+    - z700
+    - z500
+    - z200
+    - u850
+    - u500
+    - u200
+    - v850
+    - v500
+    - v200
+    - t850
+    - t700
+    - LR75
+    - SHEAR500
+    - SHEAR850
+    - u10m
+    - v10m
+    - UV10
+    - t2m
+    - msl
