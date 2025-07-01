@@ -2,15 +2,6 @@ import datetime, sys, os
 from ecmwf.opendata import Client
 from ecmwfapi import ECMWFService
 
-os.environ['ECMWF_API_KEY'] = "bbfde4b05540eefc786ab64c9f4ea8b7"
-os.environ['ECMWF_API_URL'] = "https://api.ecmwf.int/v1"
-os.environ['ECMWF_API_EMAIL'] = "sobash@ucar.edu"
-#{
-#    "url"   : "https://api.ecmwf.int/v1",
-#    "key"   : "bbfde4b05540eefc786ab64c9f4ea8b7",
-#    "email" : "sobash@ucar.edu"
-#}
-
 thisdate = datetime.datetime.strptime(sys.argv[1], '%Y%m%d%H')
 ic_source = sys.argv[2]
 yyyymmddhh = thisdate.strftime('%Y%m%d%H')
