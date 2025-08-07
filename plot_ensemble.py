@@ -138,7 +138,7 @@ def plot_forecast(data2d, ofile='forecast.png'):
     plt.tight_layout()
     plt.savefig(ofile, dpi=150)
 
-def plot_forecast_grid(args, ds, plotdays=range(9), ofile='test.png'):
+def plot_forecast_grid(args, ds, plotdays=range(9), ofile=None):
     axes_proj = ccrs.LambertConformal(central_longitude=-100, central_latitude=37)
     
     fig_width = 9
@@ -190,9 +190,11 @@ def plot_forecast_grid(args, ds, plotdays=range(9), ofile='test.png'):
     axes[8].text(0.02,0.7, 'Init: %s'%daytext1, fontsize=8, ha='left', va='center', color='k', transform=axes[8].transAxes)
     axes[8].text(0.02,0.63, 'Model: %s, IC: %s'%(args.model.upper(),ictext), fontsize=6, ha='left', va='center', color='k', transform=axes[8].transAxes)
 
-    plt.savefig(ofile, dpi=150, bbox_inches='tight')
-    plt.close(fig)
-    print(ofile)
+    if ofile:
+        plt.savefig(ofile, dpi=150, bbox_inches='tight')
+        print(ofile)
+
+    return fig
 
 ##################################
 mask  = pickle.load(open('/glade/u/home/sobash/2013RT/usamask.pk', 'rb'))

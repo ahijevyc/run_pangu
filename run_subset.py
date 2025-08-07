@@ -5,6 +5,8 @@ from concurrent.futures import ProcessPoolExecutor, as_completed
 import logging
 import shutil # For os.replace which is safer than remove/rename on some OS
 
+from s3_run_fengwu_ecmwf import channel_subset
+
 # Configure logging
 logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(processName)s - %(levelname)s - %(message)s')
 
@@ -40,8 +42,7 @@ def process_single_file(input_file_path):
         
         logging.info(f"Subsetting data for {input_filename}")
         # Select by integer position (index)
-        selected_ds = ds.isel(channel=[0,1,2,3,9,11,13,14,15,24,26,27,28,35,37,39,40,41,48,50,52,53,54,61,63,65,66,67]) \
-                          .sel(lat=slice(60,20), lon=slice(220,300))
+        selected_ds = ds.sel(channel=channel_subset, lat=slice(60,20), lon=slice(220,300))
 
         logging.info(f"Saving subsetted data to temporary file: {temp_output_file_path}")
         # Save to a temporary file

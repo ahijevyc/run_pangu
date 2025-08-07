@@ -29,6 +29,7 @@ import xarray
 from run_pangu import plot_ensemble
 from run_pangu.s3_run_fengwu_ecmwf import (
     fengwu_channels,
+    channel_subset,
     lat,
     lon,
     pressure_levels,
@@ -97,7 +98,7 @@ def run_fengwu(input, data_mean, data_std, date, ic, odir, clobber=False):
                 "lon": lon,
             },
             dims=["init_time", "prediction_timedelta", "channel", "lat", "lon"],
-        ).sel(lat=slice(60, 20), lon=slice(220, 300)).isel(channel = [0,1,2,3,9,11,13,14,15,24,26,27,28,35,37,39,40,41,48,50,52,53,54,61,63,65,66,67])
+        ).sel(lat=slice(60, 20), lon=slice(220, 300), channel=channel_subset)
 
         # Save as netCDF
         da_output.to_netcdf(output_filename)

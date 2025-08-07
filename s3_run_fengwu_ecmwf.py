@@ -6,6 +6,7 @@ import xarray as xr
 import argparse
 from pathlib import Path
 import datetime
+import earthkit.data as ekd
 
 # Define the coordinates
 lat = np.linspace(90, -90, 721)
@@ -16,6 +17,10 @@ surface_channels = ['u10m', 'v10m', 't2m', 'msl']
 variables = ['z', 'q', 'u', 'v', 't']
 pressure_levels = ['50', '100', '150', '200', '250', '300', '400', '500', '600', '700', '850', '925', '1000']
 fengwu_channels = surface_channels + [f"{var}{level}" for var in variables for level in pressure_levels]
+
+# subset for Vx
+channel_subset = surface_channels + [f"{var}{level}" for var in variables for level in ['300', '500', '700', '850', '925']]
+channel_subset.remove('q300')
 
 def parse_arguments():
     parser = argparse.ArgumentParser(description='Run inference for a date range with FengWu')
@@ -47,6 +52,19 @@ def generate_time_list(start_date, end_date):
         current += datetime.timedelta(days=1)
     
     return time_list
+
+
+def ai_input_grb(grb):
+    input = ekd.from_source("file", grb)
+    pressure_levels_int = [int(p) for p in pressure_levels]
+    sfc_param = ["10u", "10v", "2t", "msl"]
+    fields_sfc = input.sel(param=sfc_param, levtype="sfc").order_by(param=sfc_param)
+    fields_pl = input.sel(param=variables, level=pressure_levels_int, levtype="pl").order_by(
+        param=variables, level=pressure_levels_int
+    )
+    fields_all = fields_sfc + fields_pl
+    #print(fields_all.ls())
+    return fields_all.to_numpy()
 
 
 def ensure_directory_exists(path):

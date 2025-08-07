@@ -77,6 +77,7 @@ def process_member(time: str, mem: str) -> None:
         param = f.metadata("shortName")
         grid_metadata = {key: reference_field[key] for key in grid_keys}
         # resize to 0.25 deg
+        # TODO: use linear interpolation (order=1)
         arr = resize(f.to_numpy(), (721, 1440), order=0, mode='edge', anti_aliasing=False)
         
         out.write(

@@ -9,7 +9,7 @@ cat <<EOF|qsub
 #!/bin/bash -l
 #PBS -N $yyyymmddhh
 #PBS -A NMMM0021
-#PBS -l select=1:ncpus=1:mpiprocs=1:ngpus=1:mem=25GB
+#PBS -l select=1:ncpus=1:mpiprocs=1:ngpus=1:mem=8GB
 #PBS -l gpu_type=a100
 #PBS -l walltime=01:00:00
 #PBS -q casper@casper-pbs
