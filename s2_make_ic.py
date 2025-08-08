@@ -67,6 +67,9 @@ def main():
     elif args.ic == 'gfs':
         from rda_gfs_fast import GFSDataSource
         ds = GFSDataSource(pangu_channel, forecast_time)
+    elif args.ic == 'mpas':
+        from hwt_mpas import MPASDataSource
+        ds = MPASDataSource(pangu_channel, forecast_time)
     else:
         from rda_euro import HRESDataSource
         ds = HRESDataSource(pangu_channel, forecast_time, args.ic, args.output_dir)

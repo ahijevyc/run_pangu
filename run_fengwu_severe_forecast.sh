@@ -30,8 +30,8 @@ mkdir -pv $run_dir
 python s1_get_ecmwf.py --start_date $yyyymmddhh2 --end_date $yyyymmddhh2 --output_dir $run_dir --ic $ic
 
 # process ecmwf data into format required for Pangu
-#python s2_make_ic_ecmwf.py --start_date $yyyymmddhh --end_date $yyyymmddhh --output_dir $run_dir --ic $ic
-python s2_make_ic_ecmwf.py --start_date $yyyymmddhh2 --end_date $yyyymmddhh2 --output_dir $run_dir --ic $ic
+#python s2_make_ic.py --start_date $yyyymmddhh --end_date $yyyymmddhh --output_dir $run_dir --ic $ic
+python s2_make_ic.py --start_date $yyyymmddhh2 --end_date $yyyymmddhh2 --output_dir $run_dir --ic $ic
 
 # first file should already be there if pangu forecasts ran beforehand
 ln -sf /glade/derecho/scratch/sobash/pangu_realtime/$yyyymmddhh/$ic/pangu_$ic_init_$yyyymmddhh.nc ${run_dir}/.

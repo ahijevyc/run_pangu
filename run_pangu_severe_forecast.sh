@@ -26,7 +26,7 @@ mkdir -pv $run_dir
 python s1_get_ecmwf.py --start_date $yyyymmddhh --end_date $yyyymmddhh --output_dir $run_dir --ic $ic
 
 # process ecmwf data into format required for Pangu
-python s2_make_ic_ecmwf.py --start_date $yyyymmddhh --end_date $yyyymmddhh --output_dir $run_dir --ic $ic
+python s2_make_ic.py --start_date $yyyymmddhh --end_date $yyyymmddhh --output_dir $run_dir --ic $ic
 
 # run Pangu with ecmwf ICs
 python s3_run_pangu_ecmwf.py --start_date $yyyymmddhh --end_date $yyyymmddhh --inference_input_dir $run_dir --inference_output_dir $run_dir/pangu_forecast_data --ic $ic
