@@ -87,7 +87,7 @@ def regrid(
 
     # Create regridder
     regridder = xe.Regridder(
-        ds_in, grid_out, method, periodic=True, reuse_weights=reuse_weights, filename = '/glade/derecho/scratch/zxhua/dl_scs_project/outputs/hres_regridder_pangu.nc'
+        ds_in, grid_out, method, periodic=True, reuse_weights=reuse_weights, filename = '/glade/derecho/scratch/ahijevyc/tmp/hres_regridder_pangu.nc'
     )
     
     # Hack to speed up regridding of large files
@@ -148,7 +148,7 @@ def open_casper_nc(codes, time):
     month_end_day = month_end_date.day
     # Main part
     dataarray_futures = []
-    with concurrent.futures.ProcessPoolExecutor(16) as executor:
+    with concurrent.futures.ProcessPoolExecutor(8) as executor:
         for code in codes:
             # Pass additional required arguments to process_code
             future = executor.submit(process_code, code, SFC_DATA_PATH, LEVEL_DATA_PATH, year, month, month_end_day, day, time, hour)

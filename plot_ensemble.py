@@ -138,7 +138,7 @@ def plot_forecast(data2d, ofile='forecast.png'):
     plt.tight_layout()
     plt.savefig(ofile, dpi=150)
 
-def plot_forecast_grid(args, ds, plotdays=range(9), ofile=None):
+def plot_forecast_grid(args, ds, plotdays=range(9), ofile=None) -> plt.Figure:
     axes_proj = ccrs.LambertConformal(central_longitude=-100, central_latitude=37)
     
     fig_width = 9
