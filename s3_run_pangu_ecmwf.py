@@ -70,7 +70,7 @@ def setup_model_sessions(model_dir):
 
     return ort_session_24, ort_session_6
 
-def run_inference(ds_in: xr.DataArray, ort_session_24, ort_session_6):
+def run_inference(ds_in: xr.DataArray, ort_session_24, ort_session_6, fhr_end: int):
     """
     Runs the Pangu-Weather inference loop for a given initial condition dataset.
     
@@ -78,6 +78,7 @@ def run_inference(ds_in: xr.DataArray, ort_session_24, ort_session_6):
         ds_in (xr.DataArray): The input DataArray containing the initial conditions.
         ort_session_24 (ort.InferenceSession): The ONNX session for the 24-hour model.
         ort_session_6 (ort.InferenceSession): The ONNX session for the 6-hour model.
+        fhr_end (int): run to this forecast hour
     """
     # Define level lists
     zlevels = ['z1000', 'z925', 'z850', 'z700', 'z600', 'z500', 'z400', 'z300', 'z250', 'z200', 'z150', 'z100', 'z50']
@@ -104,7 +105,7 @@ def run_inference(ds_in: xr.DataArray, ort_session_24, ort_session_6):
     input, input_surface = input_upper, input_surface
 
     inferences=[]
-    for i in range(40):
+    for i in range(fhr_end//6):
         print(f'Processing {date} - {(i+1)*6} hour')
 
         if (i+1) % 4 == 0:
@@ -172,6 +173,7 @@ def main():
 
     date_output_dir = args.inference_output_dir
     ic = args.ic
+    fhr_end = 240
     # Process each date
     for date in dates:
         # Create output directory
@@ -198,7 +200,7 @@ def main():
             ds_in = xr.open_dataarray(input_file)
 
             # --- Pass the dataset object to the inference function ---
-            inferences = run_inference(ds_in, ort_session_24, ort_session_6)
+            inferences = run_inference(ds_in, ort_session_24, ort_session_6, fhr_end)
 
             for combined_data in inferences: 
                 # Save as netCDF
