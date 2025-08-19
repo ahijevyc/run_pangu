@@ -170,11 +170,11 @@ def plot_forecast_grid(args, ds, plotdays=range(9), ofile=None) -> plt.Figure:
 
         contour_colors = ['blue', 'green', 'red']
 
-        for m in tqdm(ds.mem):
-            this_mem = ds.sel(mem=m, step=pd.Timedelta(days=day))
+        for m in tqdm(ds.member):
+            this_mem = ds.sel(member=m, step=pd.Timedelta(days=day))
             ax.contour(lons, lats, this_mem, levels=[5520,5760,5880], colors=contour_colors, \
                        linewidths=[0.5], transform=ccrs.PlateCarree(), alpha=0.3)
-        mean_field = ds.sel(step=pd.Timedelta(days=day)).mean(dim="mem")
+        mean_field = ds.sel(step=pd.Timedelta(days=day)).mean(dim="member")
         ax.contour(lons, lats, mean_field, levels=[5520,5760,5880], colors='k', \
                    linewidths=[1.5], transform=ccrs.PlateCarree())
 

@@ -154,7 +154,7 @@ def run_inference(ds_in: xr.DataArray, ort_session_24, ort_session_6, fhr_end: i
         )
 
         # Combine upper air and surface data
-        combined_data = xr.concat([da_upper, da_surface], dim='channel').sel(lat=slice(60, 20), lon=slice(220, 300))
+        combined_data = xr.concat([da_upper, da_surface], dim='channel')
     
         inferences.append(combined_data)
     return inferences
