@@ -3,6 +3,11 @@ import os
 import pandas as pd
 import s3fs  # Using the s3fs package for direct S3 access
 
+"""
+Radford et al. 2024: Accelerating Community-Wide Evaluation of AI Models for Global Weather Prediction by Facilitating Access to Model Output
+https://journals.ametsoc.org/view/journals/bams/aop/BAMS-D-24-0057.1/BAMS-D-24-0057.1.pdf
+"""
+
 # Base S3 bucket URL for NOAA's GraphCast PDS
 S3_BUCKET_BASE = "noaa-oar-mlwp-data" # Note: s3fs doesn't need the "s3://" prefix here
 # Local directory where files will be saved
