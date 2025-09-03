@@ -38,7 +38,7 @@ from run_pangu.s3_run_fengwu_ecmwf import (
 )
 
 ai_models_dir = Path("/glade/derecho/scratch/ahijevyc/ai-models")
-date = pd.to_datetime(sys.argv[1], format="%Y%m%d%H")
+date = pd.to_datetime(sys.argv[1])
 date_6 = date - pd.to_timedelta("6h")
 ic = "gefs"
 
@@ -110,8 +110,6 @@ ort_session_6 = setup_model_sessions(model_dir)
 data_mean = np.load(model_dir / "data_mean.npy")[:, np.newaxis, np.newaxis]
 data_std = np.load(model_dir / "data_std.npy")[:, np.newaxis, np.newaxis]
 
-
-# In[ ]:
 
 
 for mem in ["c00"] + [f"p{m:02d}" for m in range(1, 31)]:  # gefs has 30 members; ecmwf has 50
