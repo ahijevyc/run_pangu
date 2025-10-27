@@ -6,16 +6,21 @@ import logging
 import re
 from functools import partial
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Any, List, Optional, Tuple
 
 import numpy as np
 import pandas as pd
+import torch
 import xarray as xr
 from metpy.calc import mixing_ratio_from_relative_humidity
 from metpy.constants import g
 from metpy.units import units
-from run_pangu.utils.xtime import xtime
+from utils.xtime import xtime
 from scipy.spatial import KDTree
+
+from earth2studio.data import DataSource
+from earth2studio.io import IOBackend
+from earth2studio.utils.type import CoordSystem
 
 # =============================================================================
 # Logging Configuration
@@ -119,11 +124,13 @@ def _preprocess_mpas_file(
                 )
                 ds[mixing_ratio_var] = mixing_ratio.metpy.dequantify()
 
-    # --- Standardize variable names and dimensions ---
+    # If `variables` is None, default to processing all channels defined in the map.
+    channels_to_process = variables if variables is not None else list(CHANNEL_TO_NAME.keys())
+    
     # Create a list of xarray DataArrays to be merged.
     das = []
-    # Loop through the requested channels.
-    for channel in variables:
+    # Loop through the list of channels to process.
+    for channel in channels_to_process:
         source_name = CHANNEL_TO_NAME.get(channel)
         if source_name is not None and source_name in ds:
             # If the variable exists, rename it and add to the list.
@@ -156,9 +163,12 @@ def _preprocess_mpas_file(
 # Main Data Source Class
 # =============================================================================
 @dataclasses.dataclass
-class MPASDataSource:
+class MPASEnsDataSource:
     """
     A self-contained data source class to fetch, process, and regrid MPAS data.
+    Returns multiple members of the ensemble (all 10 by default).
+    Might want to use earth2studio.data.MPASDataSource instead. It doesn't do
+    multiple members but it works well in the earth2studio framework.
 
     Attributes:
         grid_path: Relative path to the MPAS grid definition file.
@@ -255,7 +265,6 @@ class MPASDataSource:
             )
         logging.info(f"Found {len(existing_paths)} member files to open.")
 
-        logging.info(f"preprocess {len(variables)} variables.")
         preprocessor = partial(
             _preprocess_mpas_file, valid_time=valid_time, variables=variables
         )
@@ -347,3 +356,76 @@ class MPASDataSource:
 
         logging.info("Finished processing and regridding.")
         return ds_regridded.to_dataarray(dim="variable")  # GraphCast model, e2s expect 'variable'
+
+
+class MemoryDataSource(DataSource):
+    """A simple data source that holds a single xarray.DataArray state in memory."""
+
+    def __init__(self, data: xr.DataArray):
+        super().__init__()
+        self.data = data
+
+    def __call__(self, init_time, variable, **kwargs):
+        return self.data
+
+
+# Define a custom IO class that subsets the data before writing to NetCDF.
+class SubsetNetCDF4Backend(IOBackend):
+    def __init__(
+        self, file_name: str, lat_slice: slice, lon_slice: slice, backend_kwargs: dict = {}
+    ):
+        self.file_name = file_name
+        self.lat_slice = lat_slice
+        self.lon_slice = lon_slice
+        self.backend_kwargs = backend_kwargs
+        self.writer = None
+
+    def add_array(
+        self, coords: CoordSystem, array_name: str | list[str], **kwargs: dict[str, Any]
+    ) -> None:
+        # Create a temporary xarray object to correctly select coordinate values.
+        dummy_data = np.zeros([len(v) for v in coords.values()])
+        temp_da = xr.DataArray(dummy_data, coords=coords, dims=list(coords.keys()))
+
+        # Select the subset using coordinate values (degrees)
+        subset_da = temp_da.sel(lat=self.lat_slice, lon=self.lon_slice)
+
+        # Extract the subsetted coordinates as a dictionary
+        subset_coords = {k: v.values for k, v in subset_da.coords.items()}
+
+        # Initialize the internal NetCDF4Backend with the subsetted coordinates
+        self.writer = NetCDF4Backend(self.file_name, self.backend_kwargs)
+        self.writer.add_array(subset_coords, array_name, **kwargs)
+
+    def write(
+        self,
+        x: torch.Tensor | list[torch.Tensor],
+        coords: CoordSystem,
+        array_name: str | list[str],
+    ) -> None:
+        if self.writer is None:
+            raise RuntimeError("add_array must be called before write.")
+
+        if not isinstance(x, list):
+            x = [x]
+            array_name = [array_name]
+
+        for i, tensor in enumerate(x):
+            var_name = array_name[i]
+
+            # 1. Create a DataArray from the incoming global data tensor
+            temp_da = xr.DataArray(tensor.cpu().numpy(), coords=coords, dims=list(coords.keys()))
+
+            # 2. Select the desired subset using coordinate values (degrees)
+            subset_da = temp_da.sel(lat=self.lat_slice, lon=self.lon_slice)
+
+            # 3. Extract the subsetted data and coordinates for the writer
+            subset_x = torch.from_numpy(subset_da.data)
+            subset_coords = {k: v.values for k, v in subset_da.coords.items()}
+
+            # 4. Write the subsetted data using the internal writer
+            self.writer.write(subset_x, subset_coords, var_name)
+
+    def close(self):
+        if self.writer:
+            self.writer.close()
