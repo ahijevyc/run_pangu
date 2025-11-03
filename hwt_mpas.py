@@ -1,3 +1,4 @@
+#        Does e2s.data.mpas_ens.MPAS do the same thing?
 # =============================================================================
 # Imports
 # =============================================================================
@@ -19,7 +20,7 @@ from utils.xtime import xtime
 from scipy.spatial import KDTree
 
 from earth2studio.data import DataSource
-from earth2studio.io import IOBackend
+from earth2studio.io import IOBackend, NetCDF4Backend
 from earth2studio.utils.type import CoordSystem
 
 # =============================================================================
@@ -50,7 +51,7 @@ def get_channel_map(pressure_levels: List[int]) -> dict:
         "t2m": "t2m",
         "u10m": "u10",
         "v10m": "v10",
-        "msl": "surface_pressure"
+        "msl": "surface_pressure",
     }
     for pl in pressure_levels:
         # Determine the target pressure level for variable name construction
@@ -125,8 +126,10 @@ def _preprocess_mpas_file(
                 ds[mixing_ratio_var] = mixing_ratio.metpy.dequantify()
 
     # If `variables` is None, default to processing all channels defined in the map.
-    channels_to_process = variables if variables is not None else list(CHANNEL_TO_NAME.keys())
-    
+    channels_to_process = (
+        variables if variables is not None else list(CHANNEL_TO_NAME.keys())
+    )
+
     # Create a list of xarray DataArrays to be merged.
     das = []
     # Loop through the list of channels to process.
@@ -150,7 +153,7 @@ def _preprocess_mpas_file(
                 dims = ()
             da_zero = xr.DataArray(zero_array, dims=dims, name=channel)
             das.append(da_zero)
-            
+
     # Merge all the DataArrays into a single Dataset.
     ds = xr.merge(das, combine_attrs="drop")
 
@@ -206,9 +209,7 @@ class MPASEnsDataSource:
         # --- Compute or load regridding indices ---
         self.distance, self.indices = self._nearest_indices()
 
-    def _lon_lat_to_cartesian(
-        self, lon: np.ndarray, lat: np.ndarray
-    ) -> np.ndarray:
+    def _lon_lat_to_cartesian(self, lon: np.ndarray, lat: np.ndarray) -> np.ndarray:
         """Converts longitude and latitude (in radians) to 3D Cartesian coords."""
         x = np.cos(lat) * np.cos(lon)
         y = np.cos(lat) * np.sin(lon)
@@ -246,7 +247,11 @@ class MPASEnsDataSource:
         return distance, indices
 
     def _open_casper_nc(
-        self, itime: pd.Timestamp, fhr: int, members: List[int], variables: Optional[List[str]] = None
+        self,
+        itime: pd.Timestamp,
+        fhr: int,
+        members: List[int],
+        variables: Optional[List[str]] = None,
     ) -> xr.Dataset:
         """
         Opens and concatenates data from multiple ensemble members in parallel.
@@ -290,29 +295,28 @@ class MPASEnsDataSource:
         logging.info("Data loaded. Performing regridding.")
 
         regridded_data = da_mpas.isel(nCells=self.indices)
-        
+
         # This part of the code needs to handle a potential missing 'nCells' dimension
         # when a zero-array is created without it (e.g., if a 2D variable is requested)
         # We need to reshape the output to the target grid.
         dims = list(regridded_data.dims)
         try:
-            ncells_index = dims.index('nCells')
+            ncells_index = dims.index("nCells")
             dims.pop(ncells_index)
-            dims.extend(['lat', 'lon'])
+            dims.extend(["lat", "lon"])
             new_shape = tuple(regridded_data.sizes[d] for d in dims[:-2]) + (
                 len(self.new_lat),
                 len(self.new_lon),
             )
             reshaped_data = regridded_data.values.reshape(new_shape)
         except ValueError:
-            # If 'nCells' is not a dimension, the data is already a scalar or 
+            # If 'nCells' is not a dimension, the data is already a scalar or
             # has other dimensions. Reshaping to a grid of zeros.
             logging.warning("Reshaping a non-grid variable to a full grid of zeros.")
             channel_size = regridded_data.sizes["channel"]
             new_shape = (channel_size, len(self.new_lat), len(self.new_lon))
             reshaped_data = np.zeros(new_shape)
-            dims = ['channel', 'lat', 'lon']
-
+            dims = ["channel", "lat", "lon"]
 
         final_coords = {dim: regridded_data.coords[dim] for dim in dims[:-2]}
         final_coords["lat"] = self.new_lat
@@ -330,15 +334,22 @@ class MPASEnsDataSource:
         return ds_remapped
 
     def __call__(
-        self, itime: pd.Timestamp, fhr: int, variables: Optional[List[str]] = None, members: Optional[List[int]] = None
+        self,
+        itime: pd.Timestamp,
+        fhr: int,
+        variables: Optional[List[str]] = None,
+        members: Optional[List[int]] = None,
     ) -> xr.Dataset:
         """
         Makes the class instance callable. This is the main entry point for the workflow.
+        Does e2s.data.mpas_ens.MPAS do the same thing?
         """
         # Use the members provided in the call, otherwise default to the instance's members
         members_to_process = members if members is not None else self.members
 
-        ds_mpas = self._open_casper_nc(itime, fhr, members=members_to_process, variables=variables)
+        ds_mpas = self._open_casper_nc(
+            itime, fhr, members=members_to_process, variables=variables
+        )
         # Check for grid mismatch only if a variable with nCells exists.
         has_ncells_var = any("nCells" in var.dims for var in ds_mpas.data_vars.values())
         if has_ncells_var and ds_mpas.sizes.get("nCells") != self.grid_ncells:
@@ -355,7 +366,9 @@ class MPASEnsDataSource:
         ds_regridded.attrs["forecast_hour"] = fhr
 
         logging.info("Finished processing and regridding.")
-        return ds_regridded.to_dataarray(dim="variable")  # GraphCast model, e2s expect 'variable'
+        return ds_regridded.to_dataarray(
+            dim="variable"
+        )  # GraphCast model, e2s expect 'variable'
 
 
 class MemoryDataSource(DataSource):
@@ -372,7 +385,11 @@ class MemoryDataSource(DataSource):
 # Define a custom IO class that subsets the data before writing to NetCDF.
 class SubsetNetCDF4Backend(IOBackend):
     def __init__(
-        self, file_name: str, lat_slice: slice, lon_slice: slice, backend_kwargs: dict = {}
+        self,
+        file_name: str,
+        lat_slice: slice,
+        lon_slice: slice,
+        backend_kwargs: dict = {},
     ):
         self.file_name = file_name
         self.lat_slice = lat_slice
@@ -414,7 +431,9 @@ class SubsetNetCDF4Backend(IOBackend):
             var_name = array_name[i]
 
             # 1. Create a DataArray from the incoming global data tensor
-            temp_da = xr.DataArray(tensor.cpu().numpy(), coords=coords, dims=list(coords.keys()))
+            temp_da = xr.DataArray(
+                tensor.cpu().numpy(), coords=coords, dims=list(coords.keys())
+            )
 
             # 2. Select the desired subset using coordinate values (degrees)
             subset_da = temp_da.sel(lat=self.lat_slice, lon=self.lon_slice)
