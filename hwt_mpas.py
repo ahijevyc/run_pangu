@@ -16,7 +16,7 @@ import xarray as xr
 from metpy.calc import mixing_ratio_from_relative_humidity
 from metpy.constants import g
 from metpy.units import units
-from utils.xtime import xtime
+from .utils.xtime import xtime
 from scipy.spatial import KDTree
 
 from earth2studio.data import DataSource
