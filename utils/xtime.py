@@ -1,7 +1,13 @@
+"""
+Perhaps use instead
+from earth2studio.utils.time import xtime
+"""
+
 import logging
 from pathlib import Path
 import pandas as pd
 import xarray
+
 
 def xtime(ds: xarray.Dataset):
     """convert xtime variable to datetime and assign to coordinate"""
